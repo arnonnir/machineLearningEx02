@@ -9,7 +9,6 @@ import weka.core.Instance;
 import weka.core.Instances;
 
 public class DecisionTree extends Classifier{
-	
 	private boolean m_pruningMode = false;
 	private Instances trainingData;
 	private int numberOfAttributes;
@@ -18,13 +17,23 @@ public class DecisionTree extends Classifier{
 	@Override
 	public void buildClassifier(Instances instances) throws Exception {
 		trainingData = instances;
-		double d = trainingData.instance(0).classValue();
 		numberOfAttributes = trainingData.numAttributes() - 1;
 		ArrayList<Integer> instanceIndexs = convertInstacesToList(instances);
-		tree = buildTree(instanceIndexs, null);
+		ArrayList<Integer> attributeIndexes = initializeAttributeIndexes();
+		tree = buildTree(instanceIndexs, null, attributeIndexes);
 		
 	}
 	
+	private ArrayList<Integer> initializeAttributeIndexes() {
+		ArrayList<Integer> attributeIndexes = new ArrayList<Integer>();
+		
+		for(int i = 0; i < numberOfAttributes; i ++) {
+			attributeIndexes.add(i);
+		}
+		
+		return attributeIndexes;
+	}
+
 	private ArrayList<Integer> convertInstacesToList(Instances instances) {
 		ArrayList<Integer> convertedList = new ArrayList<Integer>();
 		
@@ -39,23 +48,26 @@ public class DecisionTree extends Classifier{
 		m_pruningMode = pruningMode;
 	}
 	
-	private Node buildTree(ArrayList<Integer> instanceIndexes, Node parent) {
-		if(haveSameClassifaction(instanceIndexes)) {
-			Node leaf = new Node(0);
-			leaf.isLeaf = true;
+	private Node buildTree(ArrayList<Integer> instanceIndexes, Node parent, ArrayList<Integer> attributeIndexes) {
+			
+		boolean isSame = haveSameClassifaction(instanceIndexes);
+		if(isSame || attributeIndexes.size() == 0) {
+			Leaf leaf = new Leaf(0);
 			leaf.setParent(parent);
 			leaf.setInstanceIndexes(instanceIndexes);
+			leaf.classValue = getMajorClassValue(instanceIndexes); 
 			
 			return leaf;
 		}
 		
-		double maxGain = 0;
+		double maxGain = -1; // initialze to number that the gain cannot reach
 		int attributeMaxGainIndex = 0;
-		int attributeNumOfValues = 0;
+		int maxAttributeNumOfValues = 0;
+		int currentAttributeNumOfValues = 0;
 		
-		for(int attributeIndex = 0; attributeIndex < numberOfAttributes; attributeIndex++) {
-			attributeNumOfValues = trainingData.attribute(attributeIndex).numValues();
-			double attributeGain = calcInfoGain(instanceIndexes, attributeNumOfValues, attributeIndex);
+		for(int attributeIndex : attributeIndexes) {
+			currentAttributeNumOfValues = trainingData.attribute(attributeIndex).numValues();
+			double attributeGain = calcInfoGain(instanceIndexes, currentAttributeNumOfValues, attributeIndex);
 			
 			if(maxGain < attributeGain) {
 				maxGain = attributeGain;
@@ -63,20 +75,60 @@ public class DecisionTree extends Classifier{
 			}
 		}
 		
-		Node root = new Node(attributeNumOfValues);
+		attributeIndexes.remove((Object)attributeMaxGainIndex);
+		
+		maxAttributeNumOfValues = trainingData.attribute(attributeMaxGainIndex).numValues();
+		
+		Root root = new Root(maxAttributeNumOfValues);
 		root.atributeIndex = attributeMaxGainIndex;
 		root.setParent(parent);
 		
-		int attributeMaxGainNumOfValues = trainingData.attribute(attributeMaxGainIndex).numValues();
-		ArrayList<ArrayList<Integer>> arrayOfFilterdInstanceIndexes = dividesInstances(instanceIndexes, attributeMaxGainNumOfValues, attributeMaxGainIndex);
+		ArrayList<ArrayList<Integer>> arrayOfFilterdInstanceIndexes = dividesInstances(instanceIndexes, maxAttributeNumOfValues, attributeMaxGainIndex);
 		
 		for(int i = 0; i < arrayOfFilterdInstanceIndexes.size(); i++) {
-			root.children[i] = buildTree(arrayOfFilterdInstanceIndexes.get(i), root);
+			ArrayList<Integer> currentInstanceIndexes = arrayOfFilterdInstanceIndexes.get(i);
+			
+			if(currentInstanceIndexes.size() == 0) {
+				Leaf leaf = new Leaf(0);
+				leaf.setParent(parent);
+				leaf.classValue = getMajorClassValue(instanceIndexes); // assign arbitrary value
+				
+				root.children[i] = leaf;
+			}else {
+				ArrayList<Integer> attributeIndexesCopy = copyAttributeIndexes(attributeIndexes);
+				root.children[i] = buildTree(currentInstanceIndexes, root, attributeIndexesCopy);
+			}
 		}
 		
 		return root;
 	}
 	
+	private double getMajorClassValue(ArrayList<Integer> instanceIndexes) {
+		int[] classValueCounters = new int[trainingData.numClasses()];
+		double majorClassValueIndex = 0;
+		
+		for (int instanceIndex : instanceIndexes) {
+			classValueCounters[(int)trainingData.instance(instanceIndex).classValue()]++;
+			
+			if (classValueCounters[(int)trainingData.instance(instanceIndex).classValue()] > majorClassValueIndex) {
+				majorClassValueIndex = trainingData.instance(instanceIndex).classValue();
+			}
+		}
+		
+		return majorClassValueIndex;
+		
+	}
+
+	private ArrayList<Integer> copyAttributeIndexes(ArrayList<Integer> attributeIndexes) {
+		ArrayList<Integer> attributeIndexesCopy = new ArrayList<Integer>();
+		
+		for(int attributeIndex : attributeIndexes) {
+			attributeIndexesCopy.add(attributeIndex);
+		}
+		
+		return attributeIndexesCopy;
+	}
+
 	private ArrayList<ArrayList<Integer>> dividesInstances(ArrayList<Integer> instanceIndexes, int numOfChildren, int attributeIndex) {
 		ArrayList<ArrayList<Integer>> arrayOfFilterdInstanceIndexes = new ArrayList<ArrayList<Integer>>(numOfChildren);
 		
@@ -111,18 +163,17 @@ public class DecisionTree extends Classifier{
 	private double calcInfoGain(ArrayList<Integer> instanceIndexs, int attributeNumOfValues, int attributeIndex) {
 		ArrayList<ArrayList<Integer>> arrayOfFilterdInstanceIndexes = dividesInstances(instanceIndexs, attributeNumOfValues, attributeIndex);
 		double[] prob = getProbabilities(instanceIndexs);
-		// H(p/p+n, n/p+n)
 		double nodeEntropy = calcEntropy(prob);
-		// Expected Entropy for all children... 2/12 * H(0,1) + ...
 		double expectedEntropy = calcExpectedEntropy(instanceIndexs, arrayOfFilterdInstanceIndexes);
 		
 		return nodeEntropy - expectedEntropy;
 	}
 	
 	private double[] getProbabilities(ArrayList<Integer> instanceIndexes) {
+		int numOfInstances = instanceIndexes.size();
 		int numOfProbabilities = trainingData.numClasses();
 		double[] prob = new double[numOfProbabilities];
-		int numOfInstances = instanceIndexes.size();
+		
 		for (int i = 0; i < numOfInstances; i++) {
 			int classValue = (int)trainingData.instance(instanceIndexes.get(i)).classValue();
 			prob[classValue]++;
@@ -139,24 +190,18 @@ public class DecisionTree extends Classifier{
 		double entropy = 0;
 		
 		for(double probability : probabilities) {
-			double log2BaseValue = Math.log10(probability) / Math.log10(2);
+			double log2BaseValue = 0;
+			if(probability != 0) {
+				log2BaseValue = Math.log10(probability) / Math.log10(2);
+			}
+			
 			entropy -= probability * log2BaseValue;
 		}
 		
 		return entropy;
 	}
 	
-	private double calcExpectedEntropy(ArrayList<Integer> instanceIndexs, ArrayList<ArrayList<Integer>> arrayOfFilterdInstanceIndexes) {
-//		double expectedEntropy = 0;
-//		int numOfInstances = arrayOfFilterdInstanceIndexes.size();
-//		
-//		for(int i = 0; i < numOfDistinctValues; i++) {
-//			int numOfInstancesOfDistinctValue = arrayOfFilterdInstanceIndexes.get(numOfDistinctValues).size();
-//			double prob = (double)numOfInstancesOfDistinctValue / (double)numOfInstances;
-//			double currentEntropy = calcEntropy(allDistinctValuesProbabilties[i]);
-//			expectedEntropy += prob * currentEntropy;
-//		}
-		
+	private double calcExpectedEntropy(ArrayList<Integer> instanceIndexs, ArrayList<ArrayList<Integer>> arrayOfFilterdInstanceIndexes) {		
 		double expectedEntropy = 0;
 		int numOfChildren = arrayOfFilterdInstanceIndexes.size();
 		double numOfInstances = instanceIndexs.size();
@@ -166,31 +211,38 @@ public class DecisionTree extends Classifier{
 		
 		for (int i = 0; i < numOfChildren; i++) {
 			double numSpecificChildInstances = arrayOfFilterdInstanceIndexes.get(i).size();
-			// (ni + pi) / (n + p)
-			speceificChildProb = numSpecificChildInstances / numOfInstances;;
-			childProbForEntropy = getProbabilities(arrayOfFilterdInstanceIndexes.get(i)); 
-			childEntropy = calcEntropy(childProbForEntropy);
+			speceificChildProb = numSpecificChildInstances / numOfInstances;
+			
+			if(numSpecificChildInstances == 0) {
+				childEntropy = 0;
+			}else {
+				childProbForEntropy = getProbabilities(arrayOfFilterdInstanceIndexes.get(i)); 
+				childEntropy = calcEntropy(childProbForEntropy);
+			}
+			
 			expectedEntropy += speceificChildProb * childEntropy;
 		}
 		
 		return expectedEntropy;
 	}
 	
-	public double Classify(Instance testInstance, Node tree) {
-		while (!tree.isLeaf) {
-			double result = testInstance.value(tree.atributeIndex);
-			tree = tree.children[(int)result];
+	public double Classify(Instance testInstance) {
+		while (tree.children.length != 0) { 
+			double attributeValue = testInstance.value(((Root)tree).atributeIndex);
+			tree = tree.children[(int)attributeValue];
 		}
 		
-		return trainingData.instance(tree.instanceIndexes.get(0)).classValue();
+		return ((Leaf)tree).classValue;
 	}
 
-	public double CalcAvgError(Instances testingData, Node tree) {
+	public double CalcAvgError(Instances testingData) {
 		double errorCounter = 0;
+		System.out.println("number instances: " + testingData.numInstances());
 		for (int i = 0; i < testingData.numInstances(); i++) {
 			double classValue = testingData.instance(i).classValue();
-			double predictValue = Classify(testingData.instance(i), tree);
-			errorCounter = (classValue != predictValue) ? errorCounter++ : errorCounter; 
+			double predictValue = Classify(testingData.instance(i));
+			boolean equals = (classValue == predictValue);
+			errorCounter += !equals ? 1 : 0; 
 		}
 		
 		return errorCounter / (double)testingData.numInstances();

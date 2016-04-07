@@ -9,8 +9,6 @@ public class Node {
 	public Node[] children;
 	public Node parent;
 	public ArrayList<Integer> instanceIndexes = new ArrayList<Integer>();
-	public int atributeIndex;
-	public boolean isLeaf = false;
 	
 	
 	public Node(int numOfChildren) {
@@ -22,11 +20,9 @@ public class Node {
 		this.instanceIndexes = instanceIndexes;
 	}
 	
-	public void insertInstanceIndex(int index) {
-		instanceIndexes.add(index);
-	}
-	
 	public void setParent(Node parent) {
 		this.parent = parent;
 	}
 }
+
+
