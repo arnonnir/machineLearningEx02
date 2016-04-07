@@ -26,6 +26,10 @@ public class TreeDriver {
 	}
 
 	public static void main(String[] args) throws Exception {
-		
+		BufferedReader reader = readDataFile("/Users/arnonnir/Documents/workspace/HomeWork2/src/homework2/cancer_train.txt");
+		Instances instances = new Instances(reader);
+		DecisionTree tree = new DecisionTree();
+		tree.setPruningMode(false);
+		tree.buildClassifier(instances);
 	}
 }
