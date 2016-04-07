@@ -26,10 +26,18 @@ public class TreeDriver {
 	}
 
 	public static void main(String[] args) throws Exception {
-		BufferedReader reader = readDataFile("/Users/arnonnir/Documents/workspace/HomeWork2/src/homework2/cancer_train.txt");
-		Instances instances = new Instances(reader);
-		DecisionTree tree = new DecisionTree();
-		tree.setPruningMode(false);
-		tree.buildClassifier(instances);
+		BufferedReader readTraining = readDataFile("/Users/yakirjonasoff/Documents/workspace/HomeWork2/src/homework2/cancer_train.txt");
+		BufferedReader readTesting = readDataFile("/Users/yakirjonasoff/Documents/workspace/HomeWork2/src/homework2/test.txt");
+		Instances instancesTraining = new Instances(readTraining);
+		instancesTraining.setClassIndex(instancesTraining.numAttributes() - 1);
+		Instances instancesTesting = new Instances(readTesting);
+		instancesTesting.setClassIndex(instancesTesting.numAttributes() - 1);
+		DecisionTree decisionTree = new DecisionTree();
+		decisionTree.setPruningMode(false);
+		decisionTree.buildClassifier(instancesTraining);
+		double error = decisionTree.CalcAvgError(instancesTesting, decisionTree.tree);
+		System.out.println(error);
 	}
+	
+	
 }
