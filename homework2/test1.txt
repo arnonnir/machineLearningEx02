@@ -1,0 +1,9 @@
+@relation cancer
+@attribute 'age' {'10-19', '20-29', '30-39'}
+@attribute 'gender' {'men', 'women'}
+@attribute 'height' {'160', '180'}
+@attribute 'class' { 'no', 'yes'}
+@data
+'10-19', 'men', '160', 'no'
+'20-29','men','180','yes'
+'30-39', 'women', '180', 'yes'

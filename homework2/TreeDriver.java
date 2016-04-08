@@ -26,8 +26,8 @@ public class TreeDriver {
 	}
 
 	public static void main(String[] args) throws Exception {
-		BufferedReader readTraining = readDataFile("/Users/arnonnir/Documents/workspace/HomeWork2/src/homework2/mushrooms_training.txt");
-		BufferedReader readTesting = readDataFile("/Users/arnonnir/Documents/workspace/HomeWork2/src/homework2/mushrooms_training.txt");
+		BufferedReader readTraining = readDataFile("/Users/yakirjonasoff/Documents/workspace/n/src/homework2/cancer_train.txt");
+		BufferedReader readTesting = readDataFile("/Users/yakirjonasoff/Documents/workspace/n/src/homework2/cancer_test.txt");
 		
 		Instances instancesTraining = new Instances(readTraining);
 		instancesTraining.setClassIndex(instancesTraining.numAttributes() - 1);

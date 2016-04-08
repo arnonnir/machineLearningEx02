@@ -227,12 +227,13 @@ public class DecisionTree extends Classifier{
 	}
 	
 	public double Classify(Instance testInstance) {
-		while (tree.children.length != 0) { 
-			double attributeValue = testInstance.value(((Root)tree).atributeIndex);
-			tree = tree.children[(int)attributeValue];
+		Node temp = tree;
+		while (temp.children.length != 0) { 
+			double attributeValue = testInstance.value(((Root)temp).atributeIndex);
+			temp = temp.children[(int)attributeValue];
 		}
 		
-		return ((Leaf)tree).classValue;
+		return ((Leaf)temp).classValue;
 	}
 
 	public double CalcAvgError(Instances testingData) {
