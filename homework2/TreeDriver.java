@@ -26,8 +26,8 @@ public class TreeDriver {
 	}
 
 	public static void main(String[] args) throws Exception {
-		BufferedReader readTraining = readDataFile("/Users/yakirjonasoff/Documents/workspace/n/src/homework2/cancer_train.txt");
-		BufferedReader readTesting = readDataFile("/Users/yakirjonasoff/Documents/workspace/n/src/homework2/cancer_test.txt");
+		BufferedReader readTraining = readDataFile("/Users/arnonnir/Documents/workspace/HomeWork2/src/homework2/cancer_train.txt");
+		BufferedReader readTesting = readDataFile("/Users/arnonnir/Documents/workspace/HomeWork2/src/homework2/cancer_test.txt");
 		
 		Instances instancesTraining = new Instances(readTraining);
 		instancesTraining.setClassIndex(instancesTraining.numAttributes() - 1);
@@ -36,12 +36,17 @@ public class TreeDriver {
 		instancesTesting.setClassIndex(instancesTesting.numAttributes() - 1);
 		
 		DecisionTree decisionTree = new DecisionTree();
-		decisionTree.setPruningMode(false);
-		decisionTree.buildClassifier(instancesTraining);
 		
-		//System.out.println(decisionTree.Classify(instancesTesting.firstInstance()));
-		double error = decisionTree.CalcAvgError(instancesTesting);
-		System.out.println(error);
+//		decisionTree.setPruningMode(false);
+//		decisionTree.buildClassifier(instancesTraining);
+//		double errorWithoutPruning = decisionTree.CalcAvgError(instancesTesting);
+//		System.out.println(errorWithoutPruning);
+//		
+		decisionTree.setPruningMode(true);
+		decisionTree.setChartValue(2.733);
+		decisionTree.buildClassifier(instancesTraining);
+		double errorWithPruning = decisionTree.CalcAvgError(instancesTesting);
+		System.out.println(errorWithPruning);
 	}
 	
 	

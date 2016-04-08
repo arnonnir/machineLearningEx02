@@ -10,6 +10,7 @@ import weka.core.Instances;
 
 public class DecisionTree extends Classifier{
 	private boolean m_pruningMode = false;
+	private double m_chartValue;
 	private Instances trainingData;
 	private int numberOfAttributes;
 	public Node tree;
@@ -21,7 +22,6 @@ public class DecisionTree extends Classifier{
 		ArrayList<Integer> instanceIndexs = convertInstacesToList(instances);
 		ArrayList<Integer> attributeIndexes = initializeAttributeIndexes();
 		tree = buildTree(instanceIndexs, null, attributeIndexes);
-		
 	}
 	
 	private ArrayList<Integer> initializeAttributeIndexes() {
@@ -48,8 +48,11 @@ public class DecisionTree extends Classifier{
 		m_pruningMode = pruningMode;
 	}
 	
+	public void setChartValue(double chartValue) {
+		m_chartValue = chartValue;
+	}
+	
 	private Node buildTree(ArrayList<Integer> instanceIndexes, Node parent, ArrayList<Integer> attributeIndexes) {
-			
 		boolean isSame = haveSameClassifaction(instanceIndexes);
 		if(isSame || attributeIndexes.size() == 0) {
 			Leaf leaf = new Leaf(0);
@@ -78,12 +81,25 @@ public class DecisionTree extends Classifier{
 		attributeIndexes.remove((Object)attributeMaxGainIndex);
 		
 		maxAttributeNumOfValues = trainingData.attribute(attributeMaxGainIndex).numValues();
+		ArrayList<ArrayList<Integer>> arrayOfFilterdInstanceIndexes = dividesInstances(instanceIndexes, maxAttributeNumOfValues, attributeMaxGainIndex);
+		
+		if(m_pruningMode) {
+			double[] nodeProb = getProbabilities(instanceIndexes);
+			double chiSquare = calcChiSquare(nodeProb, arrayOfFilterdInstanceIndexes);
+			
+			if(chiSquare <= m_chartValue) { // random distribution
+				Leaf leaf = new Leaf(0);
+				leaf.setParent(parent);
+				leaf.setInstanceIndexes(instanceIndexes);
+				leaf.classValue = getMajorClassValue(instanceIndexes);
+				
+				return leaf;
+			}
+		}
 		
 		Root root = new Root(maxAttributeNumOfValues);
 		root.atributeIndex = attributeMaxGainIndex;
 		root.setParent(parent);
-		
-		ArrayList<ArrayList<Integer>> arrayOfFilterdInstanceIndexes = dividesInstances(instanceIndexes, maxAttributeNumOfValues, attributeMaxGainIndex);
 		
 		for(int i = 0; i < arrayOfFilterdInstanceIndexes.size(); i++) {
 			ArrayList<Integer> currentInstanceIndexes = arrayOfFilterdInstanceIndexes.get(i);
@@ -91,7 +107,7 @@ public class DecisionTree extends Classifier{
 			if(currentInstanceIndexes.size() == 0) {
 				Leaf leaf = new Leaf(0);
 				leaf.setParent(parent);
-				leaf.classValue = getMajorClassValue(instanceIndexes); // assign arbitrary value
+				leaf.classValue = getMajorClassValue(instanceIndexes);
 				
 				root.children[i] = leaf;
 			}else {
@@ -174,13 +190,15 @@ public class DecisionTree extends Classifier{
 		int numOfProbabilities = trainingData.numClasses();
 		double[] prob = new double[numOfProbabilities];
 		
-		for (int i = 0; i < numOfInstances; i++) {
-			int classValue = (int)trainingData.instance(instanceIndexes.get(i)).classValue();
-			prob[classValue]++;
-		}
-		
-		for (int i = 0; i < numOfProbabilities; i++) {
-			prob[i] /= (double)numOfInstances;
+		if (numOfInstances != 0) {
+			for (int i = 0; i < numOfInstances; i++) {
+				int classValue = (int)trainingData.instance(instanceIndexes.get(i)).classValue();
+				prob[classValue]++;
+			}
+			
+			for (int i = 0; i < numOfProbabilities; i++) {
+				prob[i] /= (double)numOfInstances;
+			}
 		}
 		
 		return prob;
@@ -238,15 +256,48 @@ public class DecisionTree extends Classifier{
 
 	public double CalcAvgError(Instances testingData) {
 		double errorCounter = 0;
-		System.out.println("number instances: " + testingData.numInstances());
+		System.out.println("total instances: " + testingData.numInstances());
 		for (int i = 0; i < testingData.numInstances(); i++) {
 			double classValue = testingData.instance(i).classValue();
 			double predictValue = Classify(testingData.instance(i));
 			boolean equals = (classValue == predictValue);
 			errorCounter += !equals ? 1 : 0; 
 		}
-		
+		System.out.println("num of instances with error: " + errorCounter);
 		return errorCounter / (double)testingData.numInstances();
 	}
+	
+	private double calcChiSquare(double[] nodeProb, ArrayList<ArrayList<Integer>> arrayOfFilterdInstanceIndexes) {
+		double totalChiSquare = 0;
+		
+		for (ArrayList<Integer> currentChildInstances : arrayOfFilterdInstanceIndexes) {
+			int numOfChildInstances = currentChildInstances.size();
+			double[] childProb =  getProbabilities(currentChildInstances);
+			double currentChildChi = 0;
+			
+			for (int j = 0; j < childProb.length; j++) {
+				double classValueCount = childProb[j] * numOfChildInstances;
+				double expectedFreq = numOfChildInstances * nodeProb[j];
+				if (expectedFreq == 0) {
+					currentChildChi += Math.pow(classValueCount, 2);
+				} else {
+					currentChildChi += Math.pow((expectedFreq - classValueCount), 2) / expectedFreq;
+				}
+			}
+			
+			totalChiSquare += currentChildChi;
+		}
+		System.out.println(totalChiSquare);
+		return totalChiSquare;
+	}
 }
+
+
+
+
+
+
+
+
+
 
