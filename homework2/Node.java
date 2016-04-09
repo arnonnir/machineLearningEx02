@@ -1,9 +1,6 @@
 package homework2;
 
 import java.util.ArrayList;
-import java.util.List;
-
-import weka.core.Instances;
 
 public class Node {
 	public Node[] children;

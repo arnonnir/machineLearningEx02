@@ -3,12 +3,6 @@ package homework2;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.io.IOException;
-import java.util.Enumeration;
-
-import weka.attributeSelection.ChiSquaredAttributeEval;
-import weka.core.Attribute;
-import weka.core.Instance;
 import weka.core.Instances;
 
 public class TreeDriver {
@@ -26,8 +20,8 @@ public class TreeDriver {
 	}
 
 	public static void main(String[] args) throws Exception {
-		BufferedReader readTraining = readDataFile("/Users/arnonnir/Documents/workspace/HomeWork2/src/homework2/cancer_train.txt");
-		BufferedReader readTesting = readDataFile("/Users/arnonnir/Documents/workspace/HomeWork2/src/homework2/cancer_test.txt");
+		BufferedReader readTraining = readDataFile("src/homework2/cancer_train.txt");
+		BufferedReader readTesting = readDataFile("src/homework2/cancer_test.txt");
 		
 		Instances instancesTraining = new Instances(readTraining);
 		instancesTraining.setClassIndex(instancesTraining.numAttributes() - 1);
@@ -35,18 +29,26 @@ public class TreeDriver {
 		Instances instancesTesting = new Instances(readTesting);
 		instancesTesting.setClassIndex(instancesTesting.numAttributes() - 1);
 		
-		DecisionTree decisionTree = new DecisionTree();
+		DecisionTree decisionTreeWithoutPruning = new DecisionTree();
+		decisionTreeWithoutPruning.setPruningMode(false);
+		decisionTreeWithoutPruning.buildClassifier(instancesTraining);
 		
-//		decisionTree.setPruningMode(false);
-//		decisionTree.buildClassifier(instancesTraining);
-//		double errorWithoutPruning = decisionTree.CalcAvgError(instancesTesting);
-//		System.out.println(errorWithoutPruning);
-//		
-		decisionTree.setPruningMode(true);
-		decisionTree.setChartValue(2.733);
-		decisionTree.buildClassifier(instancesTraining);
-		double errorWithPruning = decisionTree.CalcAvgError(instancesTesting);
-		System.out.println(errorWithPruning);
+		DecisionTree decisionTreeWithPruning = new DecisionTree();
+		decisionTreeWithPruning.setPruningMode(true);
+		decisionTreeWithPruning.setChartValue(2.733);
+		decisionTreeWithPruning.buildClassifier(instancesTraining);
+		
+		double trainAverageErrorWithoutPruning = decisionTreeWithoutPruning.CalcAvgError(instancesTraining);
+		System.out.println("The average train error of the decision tree is " + trainAverageErrorWithoutPruning);
+		
+		double testAverageErrorWithoutPruning = decisionTreeWithoutPruning.CalcAvgError(instancesTesting);
+		System.out.println("The average test error of the decision tree is " + testAverageErrorWithoutPruning);
+		
+		double trainAverageErrorWithPruning = decisionTreeWithPruning.CalcAvgError(instancesTraining);
+		System.out.println("The average train error of the decision tree with pruning is " + trainAverageErrorWithPruning);
+		
+		double testAverageErrorWithPruning = decisionTreeWithPruning.CalcAvgError(instancesTesting);
+		System.out.println("The average test error of the decision tree with pruning is " + testAverageErrorWithPruning);
 	}
 	
 	

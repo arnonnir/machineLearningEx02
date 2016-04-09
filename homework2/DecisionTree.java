@@ -1,8 +1,6 @@
 package homework2;
 
-import java.text.AttributedCharacterIterator.Attribute;
 import java.util.ArrayList;
-import java.util.Properties;
 
 import weka.classifiers.Classifier;
 import weka.core.Instance;
@@ -256,14 +254,14 @@ public class DecisionTree extends Classifier{
 
 	public double CalcAvgError(Instances testingData) {
 		double errorCounter = 0;
-		System.out.println("total instances: " + testingData.numInstances());
+		
 		for (int i = 0; i < testingData.numInstances(); i++) {
 			double classValue = testingData.instance(i).classValue();
 			double predictValue = Classify(testingData.instance(i));
 			boolean equals = (classValue == predictValue);
 			errorCounter += !equals ? 1 : 0; 
 		}
-		System.out.println("num of instances with error: " + errorCounter);
+		
 		return errorCounter / (double)testingData.numInstances();
 	}
 	
@@ -287,7 +285,7 @@ public class DecisionTree extends Classifier{
 			
 			totalChiSquare += currentChildChi;
 		}
-		System.out.println(totalChiSquare);
+	
 		return totalChiSquare;
 	}
 }
